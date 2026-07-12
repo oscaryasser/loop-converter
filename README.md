@@ -1,70 +1,118 @@
-# Getting Started with Create React App
+# Our Dogs 🐾 — Family Dog Tracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A tiny private web app for keeping track of our dogs' care — medications,
+grooming, vaccinations, vet visits, feeding, and reminders. Two people,
+four dogs (Kahlua, Kohffee, Khona, and Khalev), one shared link, live sync
+between phones.
 
-## Available Scripts
+**No build step, no server, no cost.** Plain HTML/CSS/JavaScript hosted free
+on GitHub Pages, with data stored free in Firebase Firestore.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## How it works (30 seconds)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- The app is static files served by **GitHub Pages**.
+- All data lives in **Firebase Firestore** under one hard-to-guess random
+  path. Both phones subscribe to it live, so an edit on one phone appears
+  on the other within a second — no refresh.
+- Dog photos are resized to ~400px in the browser and stored *inside* the
+  database record (no Firebase Storage, no billing, no card on file).
+- There is **no login**: anyone with the link can view and edit. The random
+  path is the lock. (There's a marked spot in `app.js` where a shared
+  passphrase gate can be added later.)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## One-time setup
 
-### `npm test`
+You only do this once. Total time: about 10 minutes.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 1. Create a free Firebase project
 
-### `npm run build`
+1. Go to <https://console.firebase.google.com> and sign in with any Google
+   account.
+2. Click **Create a Firebase project**, name it anything (e.g. `our-dogs`),
+   and click **Continue**.
+3. When asked about **Google Analytics**, turn it **off** (not needed), then
+   click **Create project** → wait → **Continue**.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 2. Create the Firestore database
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. In the left sidebar, click **Build → Firestore Database**.
+2. Click **Create database**.
+3. Choose the location closest to home, click **Next**.
+4. Choose **Start in production mode** (we'll paste our own rules next),
+   click **Create**.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 3. Paste the security rules
 
-### `npm run eject`
+1. Still in Firestore, click the **Rules** tab.
+2. Delete everything in the editor and paste the entire contents of
+   [`firestore.rules`](firestore.rules) from this repo.
+3. Click **Publish**.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+> The tradeoff in one sentence: with no login, anyone who discovers the
+> exact random data path could read and edit the data — the long random ID
+> baked into the app is the only lock on the door.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 4. Register a web app + get your config
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. Click the **gear icon → Project settings** (top of the left sidebar).
+2. Scroll to **Your apps**, click the **`</>`** (web) icon.
+3. Nickname: `dog-tracker`. Do **not** tick Firebase Hosting. Click
+   **Register app**.
+4. Firebase now shows a code block containing `const firebaseConfig = { ... }`.
+   Copy the values.
+5. Open [`firebase-config.js`](firebase-config.js) in this repo and replace
+   the placeholder values with yours. Keep the `export const` line as-is.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+> **Is it safe for these keys to be public? Yes.** Firebase web config
+> values are identifiers, not secrets — they just tell the browser which
+> project to talk to. Access control comes from the Firestore rules, not
+> from hiding these values. Every Firebase-powered website ships them in
+> plain sight.
 
-## Learn More
+### 5. Turn on GitHub Pages
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. In this GitHub repo, go to **Settings → Pages**.
+2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
+3. Pick the branch this code lives on, folder **/ (root)**, click **Save**.
+4. After a minute or two the page shows your live URL, like
+   `https://YOURNAME.github.io/REPONAME/`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 6. Send the link
 
-### Code Splitting
+Text the URL to your wife. She opens it in her phone browser — that's it.
+For an app-like feel, use the browser menu → **Add to Home Screen** on both
+phones.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Everyday use
 
-### Analyzing the Bundle Size
+- **Home** shows every dog; a red chip means something's overdue.
+- Tap a dog to edit anything inline — changes save as you go and appear on
+  the other phone live.
+- **Due Soon** (bottom tab) gathers everything overdue or due in the next
+  14 days across all dogs.
+- **🗓 Add to calendar** next to any due item downloads a calendar event —
+  open it and it lands in your phone's real calendar with a 9 AM alert on
+  the day. This is the reliable reminder path.
+- The 🔔 banner enables best-effort browser notifications on app open
+  (phone browsers are flaky about these — the calendar route always works).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Files
 
-### Making a Progressive Web App
+| File | What it is |
+|---|---|
+| `index.html` | The single page |
+| `style.css` | All styling |
+| `app.js` | All logic (Firestore sync, screens, reminders, .ics export) |
+| `firebase-config.js` | **The only file you edit** — your Firebase config |
+| `firestore.rules` | Security rules to paste into the Firebase console |
+| `sw.js` | Tiny service worker so Android Chrome can show notifications |
+| `.nojekyll` | Tells GitHub Pages to serve files as-is |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Costs
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Firestore's free tier allows 50,000 reads and 20,000 writes **per day**;
+two people tracking four dogs uses a tiny fraction of a percent of that.
+GitHub Pages is free for public repos. There is nothing to pay and no
+card on file anywhere.

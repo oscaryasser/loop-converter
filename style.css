@@ -1,0 +1,509 @@
+/* ---------------------------------------------------------------
+   Our Dogs — warm, friendly, phone-first styling
+   --------------------------------------------------------------- */
+
+:root {
+  --bg: #FBF6EE;          /* warm cream */
+  --card: #FFFFFF;
+  --ink: #4A3728;         /* warm dark brown */
+  --muted: #9C8672;       /* soft mocha */
+  --line: #F0E4D2;        /* light sand border */
+  --accent: #E07A5F;      /* terracotta */
+  --accent-dark: #C96248;
+  --accent-soft: #FBE9E2;
+  --good: #7A9E7E;        /* sage green */
+  --good-soft: #EAF2EA;
+  --warn: #C98A2D;        /* amber */
+  --warn-soft: #FCF0DA;
+  --danger: #D64545;      /* overdue red */
+  --danger-soft: #FBE4E4;
+  --radius: 18px;
+  --shadow: 0 2px 10px rgba(74, 55, 40, 0.07);
+}
+
+* { box-sizing: border-box; }
+
+/* The hidden attribute must win even over display:flex rules below. */
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+#app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 16px calc(88px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+.loading {
+  text-align: center;
+  padding-top: 40vh;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 800; }
+h1 { font-size: 26px; }
+
+button {
+  font-family: inherit;
+  font-size: 16px;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 16px;   /* prevents iOS zoom-on-focus */
+  color: var(--ink);
+  background: #FFFDF9;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 90px; }
+
+a { color: var(--accent-dark); }
+
+/* ---------- header ---------- */
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 2px 16px;
+}
+.screen-head .sub { color: var(--muted); font-weight: 600; font-size: 14px; margin-top: 2px; }
+
+.back-btn {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--accent-dark);
+  padding: 10px 12px 10px 0;
+}
+
+/* ---------- notification banner ---------- */
+.notif-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent-soft);
+  border: 1.5px solid #F3CDBF;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.notif-banner button {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+/* ---------- home: dog grid ---------- */
+.dog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dog-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  text-align: left;
+  padding: 0;
+  display: block;
+  width: 100%;
+}
+.dog-card:active { transform: scale(0.98); }
+
+.dog-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: var(--line);
+}
+.dog-photo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.dog-card-body { padding: 10px 12px 12px; }
+.dog-card-name { font-size: 18px; font-weight: 800; }
+
+.chip {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-top: 5px;
+}
+.chip.ok      { background: var(--good-soft);   color: var(--good); }
+.chip.soon    { background: var(--warn-soft);   color: var(--warn); }
+.chip.overdue { background: var(--danger-soft); color: var(--danger); }
+
+.add-dog-card {
+  border: 2px dashed #E3D2B8;
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 160px;
+  width: 100%;
+}
+.add-dog-card .plus { font-size: 34px; line-height: 1; color: var(--accent); }
+
+/* ---------- cards / sections ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.card > h3 {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+}
+.field-row label {
+  flex: 0 0 88px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+}
+.field-row .hint { font-size: 13px; color: var(--muted); }
+
+/* ---------- dog detail: hero photo ---------- */
+.hero {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+.hero .dog-photo { aspect-ratio: 4 / 3; }
+.hero .photo-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+
+.dog-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 2px 14px;
+}
+.dog-name-row input {
+  font-size: 24px;
+  font-weight: 800;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+}
+.dog-name-row input:focus { border-bottom: 2px solid var(--accent); border-radius: 0; }
+.dog-age { color: var(--muted); font-weight: 700; font-size: 14px; white-space: nowrap; }
+
+/* ---------- item lists (meds, vaccines, visits, feeding) ---------- */
+.item-list { display: flex; flex-direction: column; }
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+.item-row:first-child { border-top: none; }
+
+.item-main { flex: 1; min-width: 0; text-align: left; padding: 0; }
+.item-title { font-weight: 800; font-size: 15.5px; }
+.item-sub { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.item-notes { color: var(--ink); font-size: 14px; margin-top: 3px; white-space: pre-wrap; }
+
+.cal-btn {
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 800;
+  font-size: 13px;
+  border-radius: 12px;
+  padding: 9px 11px;
+  white-space: nowrap;
+}
+.cal-btn:active { background: #F3CDBF; }
+
+.add-item-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: 2px dashed #E3D2B8;
+  border-radius: 12px;
+  color: var(--accent-dark);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+/* ---------- allergy chips ---------- */
+.chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.allergy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--warn-soft);
+  color: #8A6420;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 999px;
+  padding: 7px 8px 7px 13px;
+}
+.allergy-chip button {
+  font-size: 15px;
+  font-weight: 800;
+  color: #B08A3E;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.allergy-add { display: flex; gap: 8px; margin-top: 10px; }
+.allergy-add button {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+/* ---------- due soon screen ---------- */
+.due-item {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 13px 14px;
+  margin-bottom: 11px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.due-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--line);
+}
+.due-thumb.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+}
+.due-info { flex: 1; min-width: 0; }
+.due-info .dog { font-size: 13px; font-weight: 800; color: var(--muted); }
+.due-info .what { font-weight: 800; font-size: 15.5px; }
+.due-info .when { font-size: 13.5px; font-weight: 700; margin-top: 1px; }
+.due-info .when.overdue { color: var(--danger); }
+.due-info .when.soon { color: var(--warn); }
+
+.empty-note {
+  text-align: center;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 48px 20px;
+}
+
+/* ---------- delete dog ---------- */
+.danger-btn {
+  display: block;
+  margin: 4px auto 10px;
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 14.5px;
+  padding: 12px 18px;
+}
+
+/* ---------- bottom tab bar ---------- */
+#tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 253, 249, 0.96);
+  backdrop-filter: blur(8px);
+  border-top: 1.5px solid var(--line);
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  z-index: 50;
+}
+.tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 6px 26px;
+  border-radius: 14px;
+}
+.tab.active { color: var(--accent-dark); background: var(--accent-soft); }
+.tab-icon { font-size: 22px; line-height: 1.1; }
+.due-badge {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+/* ---------- modal (bottom sheet) ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 55, 40, 0.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal {
+  background: var(--bg);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  animation: slide-up 0.18s ease-out;
+}
+@keyframes slide-up {
+  from { transform: translateY(40px); opacity: 0.5; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.modal h2 { font-size: 20px; margin-bottom: 14px; }
+.modal .field { margin-bottom: 13px; }
+.modal .field label {
+  display: block;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.btn-primary {
+  flex: 1;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  border-radius: 14px;
+  padding: 14px;
+}
+.btn-primary:active { background: var(--accent-dark); }
+.btn-secondary {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  font-weight: 800;
+  font-size: 16px;
+  border-radius: 14px;
+  padding: 14px;
+}
+.btn-delete {
+  width: 100%;
+  margin-top: 10px;
+  color: var(--danger);
+  font-weight: 800;
+  padding: 10px;
+}
+
+/* ---------- setup screen (before Firebase config is pasted) ---------- */
+.setup-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px 18px;
+  margin-top: 10vh;
+}
+.setup-card h1 { font-size: 22px; margin-bottom: 10px; }
+.setup-card p { margin: 8px 0; }
+.setup-card code {
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+/* ---------- slightly bigger phones / desktop ---------- */
+@media (min-width: 640px) {
+  .dog-grid { grid-template-columns: 1fr 1fr; }
+  #tabbar { max-width: 560px; left: 50%; transform: translateX(-50%); border-radius: 18px 18px 0 0; border: 1.5px solid var(--line); border-bottom: none; }
+}

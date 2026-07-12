@@ -1,0 +1,8 @@
+// Minimal service worker. It exists only so the browser lets the app
+// show notifications on Android Chrome. It does not cache anything.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.openWindow("./"));
+});
