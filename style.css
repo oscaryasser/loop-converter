@@ -286,6 +286,27 @@ a { color: var(--accent-dark); }
 }
 .cal-btn:active { background: #F3CDBF; }
 
+.row-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-left: auto;
+}
+.row-actions .cal-btn, .row-actions .done-btn { width: 100%; text-align: center; }
+
+.done-btn {
+  background: var(--good-soft);
+  color: var(--good);
+  font-weight: 800;
+  font-size: 13px;
+  border-radius: 12px;
+  padding: 9px 11px;
+  white-space: nowrap;
+}
+.done-btn:active { background: #D8E8D8; }
+
 .add-item-btn {
   width: 100%;
   margin-top: 10px;
@@ -457,6 +478,21 @@ a { color: var(--accent-dark); }
   color: var(--muted);
   margin-bottom: 5px;
 }
+.modal .field-hint { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 5px; }
+.suggest-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.suggest-chip {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 7px 12px;
+  color: var(--ink);
+}
+.suggest-chip:active { border-color: var(--accent); background: var(--accent-soft); }
+.interval-row { display: flex; gap: 8px; }
+.interval-row input { max-width: 110px; }
+
 .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
 .btn-primary {
   flex: 1;

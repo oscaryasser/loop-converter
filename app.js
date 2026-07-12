@@ -38,7 +38,7 @@ const FAMILY_ID = "pack-7a3e0c53762c53311c4e7e3e";
 const DUE_SOON_DAYS = 14;
 
 // The four pups, pre-loaded on first run.
-const STARTER_DOGS = ["Kahlua", "Kohffee", "Khona", "Khalev"];
+const STARTER_DOGS = ["Kahlua", "Kohffee", "Kohna", "Kahlev"];
 
 const PLACEHOLDER_COLORS = ["#E07A5F", "#7A9E7E", "#C98A2D", "#8E7CC3", "#5F8FB4", "#B4635F"];
 
@@ -111,12 +111,27 @@ function daysUntil(str) {
   return Math.round((d - today()) / 86400000);
 }
 
+function dateToStr(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+const todayStr = () => dateToStr(today());
+
 function addDaysStr(str, days) {
   const d = parseDate(str);
   if (!d) return "";
   d.setDate(d.getDate() + days);
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return dateToStr(d);
+}
+
+function addMonthsStr(str, months) {
+  const d = parseDate(str);
+  if (!d) return "";
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() !== day) d.setDate(0); // Jan 31 + 1mo -> Feb 28, not Mar 3
+  return dateToStr(d);
 }
 
 function fmtDate(str) {
@@ -166,6 +181,35 @@ function groomingNextDue(dog) {
   return addDaysStr(g.last, Number(g.intervalWeeks) * 7);
 }
 
+// Routine care tasks (brushing, weigh-ins, food runs, remedies…)
+function taskNextDue(t) {
+  if (!t.last || !t.interval) return "";
+  const n = Number(t.interval);
+  if (t.unit === "months") return addMonthsStr(t.last, n);
+  if (t.unit === "weeks") return addDaysStr(t.last, n * 7);
+  return addDaysStr(t.last, n); // days
+}
+
+function taskIcon(name = "") {
+  const n = name.toLowerCase();
+  if (/teeth|tooth|dental/.test(n)) return "🪥";
+  if (/brush|comb/.test(n)) return "🪮";
+  if (/weig|scale/.test(n)) return "⚖️";
+  if (/food|feed|kibble/.test(n)) return "🍖";
+  if (/bath|wash|shampoo/.test(n)) return "🛁";
+  if (/flea|tick|worm|remed|drop/.test(n)) return "💧";
+  if (/nail|claw/.test(n)) return "💅";
+  if (/walk|exercise/.test(n)) return "🚶";
+  return "📌";
+}
+
+function taskIntervalText(t) {
+  if (!t.interval) return "no schedule";
+  const n = Number(t.interval);
+  const unit = (t.unit || "days").replace(/s$/, "");
+  return `every ${n} ${unit}${n === 1 ? "" : "s"}`;
+}
+
 // Everything with a due date for one dog:
 // [{ kind, icon, label, due, dogId, dogName }]
 function dueItems(dog) {
@@ -174,7 +218,7 @@ function dueItems(dog) {
     if (m.nextDue) items.push({
       kind: "med", icon: "💊",
       label: `${m.name}${m.dose ? " — " + m.dose : ""}`,
-      due: m.nextDue, dogId: dog.id, dogName: dog.name,
+      due: m.nextDue, dogId: dog.id, dogName: dog.name, itemId: m.id,
     });
   }
   for (const v of dog.vaccinations || []) {
@@ -190,6 +234,14 @@ function dueItems(dog) {
     label: "Grooming",
     due: g, dogId: dog.id, dogName: dog.name,
   });
+  for (const t of dog.careTasks || []) {
+    const due = taskNextDue(t);
+    if (due) items.push({
+      kind: "task", icon: taskIcon(t.name),
+      label: t.name, itemId: t.id,
+      due, dogId: dog.id, dogName: dog.name,
+    });
+  }
   return items;
 }
 
@@ -241,6 +293,7 @@ function blankDog(name, order) {
     weight: "",
     allergies: [],
     medications: [],
+    careTasks: [],
     grooming: { last: "", intervalWeeks: "" },
     vaccinations: [],
     vetVisits: [],
@@ -408,11 +461,30 @@ function renderDog(id) {
     <div class="item-row">
       <button class="item-main" data-action="edit-med" data-id="${esc(m.id)}">
         <div class="item-title">💊 ${esc(m.name)}</div>
-        <div class="item-sub">${esc([m.dose, m.schedule].filter(Boolean).join(" · "))}</div>
+        <div class="item-sub">${esc([m.dose, m.schedule, m.lastDone ? "✓ given " + fmtDate(m.lastDone) : ""].filter(Boolean).join(" · "))}</div>
         ${m.nextDue ? dueChip(m.nextDue) : ""}
       </button>
-      ${m.nextDue ? calBtn(dog, `💊 ${m.name}`, m.nextDue, `Give ${dog.name} ${m.name}${m.dose ? " (" + m.dose + ")" : ""}`) : ""}
+      <div class="row-actions">
+        ${doneBtn(dog.id, "med", m.id)}
+        ${m.nextDue ? calBtn(dog, `💊 ${m.name}`, m.nextDue, `Give ${dog.name} ${m.name}${m.dose ? " (" + m.dose + ")" : ""}`) : ""}
+      </div>
     </div>`).join("");
+
+  const taskRows = (dog.careTasks || []).map((t) => {
+    const due = taskNextDue(t);
+    return `
+    <div class="item-row">
+      <button class="item-main" data-action="edit-task" data-id="${esc(t.id)}">
+        <div class="item-title">${taskIcon(t.name)} ${esc(t.name)}</div>
+        <div class="item-sub">${esc([taskIntervalText(t), t.last ? "✓ done " + fmtDate(t.last) : "not done yet"].join(" · "))}</div>
+        ${due ? dueChip(due) : ""}
+      </button>
+      <div class="row-actions">
+        ${doneBtn(dog.id, "task", t.id)}
+        ${due ? calBtn(dog, `${taskIcon(t.name)} ${t.name}`, due, `${dog.name}: ${t.name}`) : ""}
+      </div>
+    </div>`;
+  }).join("");
 
   const vaxRows = (dog.vaccinations || []).map((v) => `
     <div class="item-row">
@@ -490,6 +562,12 @@ function renderDog(id) {
     </div>
 
     <div class="card">
+      <h3>🪮 Routine care</h3>
+      <div class="item-list">${taskRows || `<span class="item-sub">Brushing, weigh-ins, food runs, remedies… add one below.</span>`}</div>
+      <button class="add-item-btn" data-action="add-task">＋ Add care task</button>
+    </div>
+
+    <div class="card">
       <h3>✂️ Grooming</h3>
       <div class="field-row"><label>Last done</label><input type="date" data-field="grooming.last" value="${esc(g.last)}"></div>
       <div class="field-row"><label>Every</label>
@@ -498,7 +576,10 @@ function renderDog(id) {
       </div>
       ${groomNext ? `<div class="field-row"><label>Next due</label>
         <div>${dueChip(groomNext)}</div>
-        ${calBtn(dog, "✂️ Grooming", groomNext, `${dog.name} is due for grooming`)}
+        <div class="row-actions">
+          ${doneBtn(dog.id, "groom")}
+          ${calBtn(dog, "✂️ Grooming", groomNext, `${dog.name} is due for grooming`)}
+        </div>
       </div>` : `<div class="item-sub">Set a date + interval and I'll work out the next one.</div>`}
     </div>
 
@@ -555,6 +636,11 @@ function calBtn(dog, title, dateStr, description) {
     data-dog="${esc(dog.name)}" data-desc="${esc(description)}">🗓 Add to<br>calendar</button>`;
 }
 
+function doneBtn(dogId, kind, itemId = "") {
+  return `<button class="done-btn" data-action="done" data-dog-id="${esc(dogId)}"
+    data-kind="${kind}" data-id="${esc(itemId)}">✓ Done</button>`;
+}
+
 // ----- due soon -----
 
 function renderDueSoon() {
@@ -569,7 +655,10 @@ function renderDueSoon() {
         <div class="what">${it.icon} ${esc(it.label)}</div>
         <div class="when ${s}">${esc(dueLabel(it.due))}</div>
       </div>
-      ${calBtn(dog, `${it.icon} ${it.label}`, it.due, `${it.dogName}: ${it.label}`)}
+      <div class="row-actions">
+        ${it.kind !== "vax" ? doneBtn(it.dogId, it.kind, it.itemId || "") : ""}
+        ${calBtn(dog, `${it.icon} ${it.label}`, it.due, `${it.dogName}: ${it.label}`)}
+      </div>
     </div>`;
   }).join("");
 
@@ -592,19 +681,48 @@ function currentDog() {
   return state.dogs.find((d) => d.id === currentDogId());
 }
 
-async function saveField(path, value) {
-  const id = currentDogId();
-  if (!id) return;
+async function saveFieldFor(dogId, path, value) {
+  if (!dogId) return;
   try {
-    await updateDoc(dogRef(id), { [path]: value });
+    await updateDoc(dogRef(dogId), { [path]: value });
   } catch (e) {
     console.error("Save failed:", e);
     alert("Couldn't save — are you online?");
   }
 }
 
+async function saveField(path, value) {
+  await saveFieldFor(currentDogId(), path, value);
+}
+
 async function saveList(listName, newList) {
   await saveField(listName, newList);
+}
+
+// "✓ Done" — stamp today and roll the next due date forward.
+async function markDone(dogId, kind, itemId) {
+  const dog = state.dogs.find((d) => d.id === dogId);
+  if (!dog) return;
+  const t = todayStr();
+  if (kind === "groom") {
+    await saveFieldFor(dogId, "grooming.last", t);
+  } else if (kind === "task") {
+    const next = (dog.careTasks || []).map((x) => (x.id === itemId ? { ...x, last: t } : x));
+    await saveFieldFor(dogId, "careTasks", next);
+  } else if (kind === "med") {
+    const next = (dog.medications || []).map((m) =>
+      m.id === itemId
+        ? {
+            ...m,
+            lastDone: t,
+            // With a repeat interval the next dose schedules itself;
+            // without one, the reminder clears until you set a new date.
+            nextDue: m.repeatDays ? addDaysStr(t, Number(m.repeatDays)) : "",
+          }
+        : m
+    );
+    await saveFieldFor(dogId, "medications", next);
+  }
 }
 
 // ---------------- photo handling ----------------
@@ -780,15 +898,20 @@ function medModal(dog, med) {
       field("Name", `<input id="m-name" value="${esc(med?.name)}" placeholder="e.g. Heartworm chew">`) +
       field("Dose", `<input id="m-dose" value="${esc(med?.dose)}" placeholder="e.g. 1 tablet">`) +
       field("Schedule", `<input id="m-sched" value="${esc(med?.schedule)}" placeholder='e.g. "twice daily" or "1st of month"'>`) +
-      field("Next due", `<input type="date" id="m-due" value="${esc(med?.nextDue)}">`),
+      field("Next due", `<input type="date" id="m-due" value="${esc(med?.nextDue)}">`) +
+      field("Repeats every … days (optional)",
+        `<input type="number" min="1" max="365" inputmode="numeric" id="m-repeat" value="${esc(med?.repeatDays)}" placeholder="e.g. 30 for monthly">
+         <div class="field-hint">With this set, tapping ✓ Done automatically schedules the next dose.</div>`),
     readForm: (m) => {
       const name = $("#m-name", m).value.trim();
       if (!name) { alert("Give the medication a name."); return null; }
+      const rep = $("#m-repeat", m).value;
       return {
         name,
         dose: $("#m-dose", m).value.trim(),
         schedule: $("#m-sched", m).value.trim(),
         nextDue: $("#m-due", m).value,
+        repeatDays: rep === "" ? "" : Number(rep),
       };
     },
   });
@@ -847,6 +970,47 @@ function feedModal(dog, feed) {
   });
 }
 
+const TASK_SUGGESTIONS = ["Brushing", "Teeth brushing", "Weigh-in", "Buy food", "Bath", "Flea remedy", "Nail trim"];
+
+function taskModal(dog, task) {
+  const chips = task ? "" :
+    `<div class="suggest-row">` +
+    TASK_SUGGESTIONS.map((s) =>
+      `<button type="button" class="suggest-chip" data-suggest="${esc(s)}">${taskIcon(s)} ${esc(s)}</button>`).join("") +
+    `</div>`;
+  listItemModal({
+    title: task ? "Edit care task" : "Add care task",
+    item: task,
+    list: dog.careTasks || [],
+    listName: "careTasks",
+    fieldsHtml:
+      field("What", `<input id="t-name" value="${esc(task?.name)}" placeholder="e.g. Brushing, Weigh-in, Buy food…">${chips}`) +
+      field("How often", `<div class="interval-row">
+          <input type="number" min="1" max="365" inputmode="numeric" id="t-interval" value="${esc(task?.interval)}" placeholder="2">
+          <select id="t-unit">
+            <option value="days" ${task?.unit === "days" ? "selected" : ""}>days</option>
+            <option value="weeks" ${!task || task?.unit === "weeks" ? "selected" : ""}>weeks</option>
+            <option value="months" ${task?.unit === "months" ? "selected" : ""}>months</option>
+          </select>
+        </div>`) +
+      field("Last done", `<input type="date" id="t-last" value="${esc(task?.last)}">`),
+    readForm: (m) => {
+      const name = $("#t-name", m).value.trim();
+      if (!name) { alert("What's the task called?"); return null; }
+      return {
+        name,
+        interval: $("#t-interval", m).value === "" ? "" : Number($("#t-interval", m).value),
+        unit: $("#t-unit", m).value,
+        last: $("#t-last", m).value,
+      };
+    },
+  });
+  // suggestion chips fill the name box
+  modalRoot.querySelectorAll(".suggest-chip").forEach((c) => {
+    c.onclick = () => { const i = $("#t-name", modalRoot); i.value = c.dataset.suggest; i.focus(); };
+  });
+}
+
 function addDogModal() {
   openModal(`<h2>Add a dog 🐶</h2>
     ${field("Name", `<input id="d-name" placeholder="Their name">`)}
@@ -888,6 +1052,10 @@ appEl.addEventListener("click", (e) => {
     case "edit-visit": visitModal(dog, findIn(dog?.vetVisits)); break;
     case "add-feed": feedModal(dog, null); break;
     case "edit-feed": feedModal(dog, findIn(dog?.feeding)); break;
+    case "add-task": taskModal(dog, null); break;
+    case "edit-task": taskModal(dog, findIn(dog?.careTasks)); break;
+
+    case "done": markDone(btn.dataset.dogId, btn.dataset.kind, btn.dataset.id); break;
 
     case "add-allergy": {
       const input = $("#allergy-input");

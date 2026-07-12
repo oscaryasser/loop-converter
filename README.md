@@ -92,6 +92,12 @@ phones.
   the other phone live.
 - **Due Soon** (bottom tab) gathers everything overdue or due in the next
   14 days across all dogs.
+- **✓ Done** next to a medication, grooming, or care task stamps it done
+  today. Recurring items (grooming, care tasks, and meds with a
+  "repeats every … days" value) automatically schedule the next date.
+- **Routine care** on each dog's page tracks the recurring extras —
+  brushing, teeth, weigh-ins, buying food, baths, flea remedies — each with
+  its own interval, due date, and reminder.
 - **🗓 Add to calendar** next to any due item downloads a calendar event —
   open it and it lands in your phone's real calendar with a 9 AM alert on
   the day. This is the reliable reminder path.
