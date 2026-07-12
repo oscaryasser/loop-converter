@@ -95,6 +95,15 @@ phones.
 - **✓ Done** next to a medication, grooming, or care task stamps it done
   today. Recurring items (grooming, care tasks, and meds with a
   "repeats every … days" value) automatically schedule the next date.
+- **Timed reminders**: give a medication a reminder time and the app
+  chimes + banners at that moment while open (when a dose is due); feeding
+  times chime daily. For alarms that ring even with the app closed, the
+  calendar buttons now create **repeating timed alarms** — a feeding's
+  "⏰ Daily alarm" rings every day at that time; a med with a repeat
+  interval rings on schedule. One download, rings forever.
+- **Same for all dogs**: medications and feeding times have an "also save
+  a copy for the other dogs" checkbox, allergies have "add to all dogs",
+  and contacts have a one-tap "copy to the other dogs" button.
 - **Routine care** on each dog's page tracks the recurring extras —
   brushing, teeth, weigh-ins, buying food, baths, flea remedies — each with
   its own interval, due date, and reminder.

@@ -521,6 +521,44 @@ a { color: var(--accent-dark); }
   padding: 10px;
 }
 
+/* ---------- share-with-all-dogs checkbox ---------- */
+.copy-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+.copy-row input {
+  width: 19px;
+  height: 19px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ---------- timed reminder toast ---------- */
+#toast {
+  position: fixed;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(92vw, 480px);
+  background: var(--ink);
+  color: #FFF6EA;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(74, 55, 40, 0.35);
+  transition: top 0.25s ease-out;
+  z-index: 200;
+  cursor: pointer;
+}
+#toast.show { top: calc(12px + env(safe-area-inset-top)); }
+
 /* ---------- setup screen (before Firebase config is pasted) ---------- */
 .setup-card {
   background: var(--card);

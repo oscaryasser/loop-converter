@@ -219,6 +219,7 @@ function dueItems(dog) {
       kind: "med", icon: "💊",
       label: `${m.name}${m.dose ? " — " + m.dose : ""}`,
       due: m.nextDue, dogId: dog.id, dogName: dog.name, itemId: m.id,
+      time: m.time || "", repeatDays: m.repeatDays || "",
     });
   }
   for (const v of dog.vaccinations || []) {
@@ -461,12 +462,12 @@ function renderDog(id) {
     <div class="item-row">
       <button class="item-main" data-action="edit-med" data-id="${esc(m.id)}">
         <div class="item-title">💊 ${esc(m.name)}</div>
-        <div class="item-sub">${esc([m.dose, m.schedule, m.lastDone ? "✓ given " + fmtDate(m.lastDone) : ""].filter(Boolean).join(" · "))}</div>
+        <div class="item-sub">${esc([m.dose, m.schedule, m.time ? "⏰ " + fmtTime(m.time) : "", m.lastDone ? "✓ given " + fmtDate(m.lastDone) : ""].filter(Boolean).join(" · "))}</div>
         ${m.nextDue ? dueChip(m.nextDue) : ""}
       </button>
       <div class="row-actions">
         ${doneBtn(dog.id, "med", m.id)}
-        ${m.nextDue ? calBtn(dog, `💊 ${m.name}`, m.nextDue, `Give ${dog.name} ${m.name}${m.dose ? " (" + m.dose + ")" : ""}`) : ""}
+        ${m.nextDue ? calBtn(dog, `💊 ${m.name}`, m.nextDue, `Give ${dog.name} ${m.name}${m.dose ? " (" + m.dose + ")" : ""}`, { time: m.time, repeatDays: m.repeatDays }) : ""}
       </div>
     </div>`).join("");
 
@@ -517,6 +518,7 @@ function renderDog(id) {
         <div class="item-title">🍽 ${esc(f.time ? fmtTime(f.time) : "Anytime")}</div>
         <div class="item-sub">${esc(f.amount)}</div>
       </button>
+      ${f.time ? `<div class="row-actions">${calBtn(dog, `🍽 Feed ${dog.name}`, todayStr(), `${dog.name}: ${f.amount}`, { time: f.time, daily: true })}</div>` : ""}
     </div>`).join("");
 
   const allergyChips = (dog.allergies || []).map((a, i) => `
@@ -553,6 +555,7 @@ function renderDog(id) {
         <input id="allergy-input" placeholder="Add an allergy…" enterkeyhint="done">
         <button data-action="add-allergy">Add</button>
       </div>
+      ${state.dogs.length > 1 ? `<label class="copy-row"><input type="checkbox" id="allergy-all"> Add it to all ${state.dogs.length} dogs</label>` : ""}
     </div>
 
     <div class="card">
@@ -607,6 +610,8 @@ function renderDog(id) {
       <div class="field-row"><label>Phone</label><input type="tel" data-field="contacts.vetPhone" value="${esc(c.vetPhone)}" placeholder="Vet's phone">${telLink(c.vetPhone)}</div>
       <div class="field-row"><label>Groomer</label><input data-field="contacts.groomerName" value="${esc(c.groomerName)}" placeholder="Groomer's name"></div>
       <div class="field-row"><label>Phone</label><input type="tel" data-field="contacts.groomerPhone" value="${esc(c.groomerPhone)}" placeholder="Groomer's phone">${telLink(c.groomerPhone)}</div>
+      ${state.dogs.length > 1 && (c.vetName || c.vetPhone || c.groomerName || c.groomerPhone)
+        ? `<button class="add-item-btn" data-action="copy-contacts">📇 Copy these contacts to the other dogs</button>` : ""}
     </div>
 
     <div class="card">
@@ -630,10 +635,13 @@ function fmtTime(t) {
   return `${hr}:${String(m).padStart(2, "0")} ${am ? "AM" : "PM"}`;
 }
 
-function calBtn(dog, title, dateStr, description) {
+function calBtn(dog, title, dateStr, description, opts = {}) {
+  const label = opts.daily ? "⏰ Daily<br>alarm" : "🗓 Add to<br>calendar";
   return `<button class="cal-btn" data-action="ics"
     data-title="${esc(title)}" data-date="${esc(dateStr)}"
-    data-dog="${esc(dog.name)}" data-desc="${esc(description)}">🗓 Add to<br>calendar</button>`;
+    data-time="${esc(opts.time || "")}" data-repeat="${esc(opts.repeatDays || "")}"
+    data-daily="${opts.daily ? "1" : ""}"
+    data-dog="${esc(dog.name)}" data-desc="${esc(description)}">${label}</button>`;
 }
 
 function doneBtn(dogId, kind, itemId = "") {
@@ -657,7 +665,7 @@ function renderDueSoon() {
       </div>
       <div class="row-actions">
         ${it.kind !== "vax" ? doneBtn(it.dogId, it.kind, it.itemId || "") : ""}
-        ${calBtn(dog, `${it.icon} ${it.label}`, it.due, `${it.dogName}: ${it.label}`)}
+        ${calBtn(dog, `${it.icon} ${it.label}`, it.due, `${it.dogName}: ${it.label}`, { time: it.time, repeatDays: it.repeatDays })}
       </div>
     </div>`;
   }).join("");
@@ -775,11 +783,34 @@ function resizeImage(file, maxW, quality) {
 
 // ---------------- calendar (.ics) hand-off ----------------
 
-function downloadIcs({ title, date, dog, desc }) {
+function downloadIcs({ title, date, time, dog, desc, repeatDays, daily }) {
   const d = date.replace(/-/g, "");
-  const dEnd = addDaysStr(date, 1).replace(/-/g, "");
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const summary = `${dog}: ${title}`.replace(/<br>/g, " ");
+
+  // With a time we make a timed event (alarm rings AT that moment);
+  // without one it's an all-day event with a 9 AM alert.
+  let dtLines, trigger;
+  if (time) {
+    const [hh, mm] = time.split(":").map(Number);
+    const [y, mo, dd] = date.split("-").map(Number);
+    const end = new Date(y, mo - 1, dd, hh, mm + 15);
+    const p = (n) => String(n).padStart(2, "0");
+    dtLines = [
+      `DTSTART:${d}T${p(hh)}${p(mm)}00`,
+      `DTEND:${end.getFullYear()}${p(end.getMonth() + 1)}${p(end.getDate())}T${p(end.getHours())}${p(end.getMinutes())}00`,
+    ];
+    trigger = "TRIGGER:-PT0M";  // ring exactly at the set time
+  } else {
+    dtLines = [`DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${addDaysStr(date, 1).replace(/-/g, "")}`];
+    trigger = "TRIGGER:PT9H";   // pops at 9:00 AM on the day
+  }
+
+  // Repeats: feedings ring every day; meds every "repeatDays" days.
+  let rrule = "";
+  if (daily) rrule = "RRULE:FREQ=DAILY";
+  else if (repeatDays) rrule = `RRULE:FREQ=DAILY;INTERVAL=${Number(repeatDays)}`;
+
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -787,18 +818,18 @@ function downloadIcs({ title, date, dog, desc }) {
     "BEGIN:VEVENT",
     `UID:${uid()}@ourdogs`,
     `DTSTAMP:${stamp}`,
-    `DTSTART;VALUE=DATE:${d}`,
-    `DTEND;VALUE=DATE:${dEnd}`,
+    ...dtLines,
+    rrule,
     `SUMMARY:${icsEscape(summary)}`,
     `DESCRIPTION:${icsEscape(desc || "")}`,
     "BEGIN:VALARM",
     "ACTION:DISPLAY",
     `DESCRIPTION:${icsEscape(summary)}`,
-    "TRIGGER:PT9H",           // pops at 9:00 AM on the day
+    trigger,
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n");
+  ].filter(Boolean).join("\r\n");
 
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
   const a = document.createElement("a");
@@ -839,6 +870,90 @@ async function maybeNotify() {
   try { new Notification(title, { body }); } catch { /* best-effort only */ }
 }
 
+// ---------------- in-app timed alarms ----------------
+// While the app is open, we chime + banner + notify at each medication
+// reminder time (when a dose is due) and each feeding time. When the app
+// is closed, the "Add to calendar" alarms are the reliable path.
+
+let audioCtx = null;
+document.addEventListener("pointerdown", () => {
+  try { if (!audioCtx && window.AudioContext) audioCtx = new AudioContext(); } catch {}
+}, { once: true });
+
+function chime() {
+  if (!audioCtx) return;
+  try {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const t0 = audioCtx.currentTime;
+    [880, 1174.66, 880].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + i * 0.22);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + i * 0.22 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.22 + 0.6);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t0 + i * 0.22);
+      o.stop(t0 + i * 0.22 + 0.65);
+    });
+  } catch { /* sound is best-effort */ }
+}
+
+function toast(msg) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.addEventListener("click", () => t.classList.remove("show"));
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._h);
+  toast._h = setTimeout(() => t.classList.remove("show"), 45000);
+}
+
+function fireTimedReminder(key, msg) {
+  const k = `fired-${key}-${todayStr()}`;
+  if (localStorage.getItem(k)) return;   // once per item per day
+  localStorage.setItem(k, "1");
+  toast(msg);
+  chime();
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      Promise.race([navigator.serviceWorker?.ready, new Promise((r) => setTimeout(() => r(null), 1500))])
+        .then((reg) => {
+          if (reg) reg.showNotification("Our Dogs 🐾", { body: msg });
+          else new Notification("Our Dogs 🐾", { body: msg });
+        }).catch(() => {});
+    }
+  } catch {}
+}
+
+function checkTimedReminders() {
+  if (!state.loaded) return;
+  const n = new Date();
+  const hm = `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+  for (const dog of state.dogs) {
+    for (const f of dog.feeding || []) {
+      if (f.time === hm)
+        fireTimedReminder(`feed-${dog.id}-${f.id}`, `🍽 ${dog.name}: feeding time${f.amount ? " — " + f.amount : ""}`);
+    }
+    for (const m of dog.medications || []) {
+      if (m.time === hm && m.nextDue && m.nextDue <= todayStr())
+        fireTimedReminder(`med-${dog.id}-${m.id}`, `💊 ${dog.name}: time for ${m.name}${m.dose ? " (" + m.dose + ")" : ""}`);
+    }
+  }
+}
+
+// Sweep yesterday's "already fired" markers so they don't pile up.
+for (let i = localStorage.length - 1; i >= 0; i--) {
+  const k = localStorage.key(i);
+  if (k && k.startsWith("fired-") && !k.endsWith(todayStr())) localStorage.removeItem(k);
+}
+setInterval(checkTimedReminders, 20000);
+
 // ---------------- modals ----------------
 
 function openModal(html) {
@@ -862,13 +977,18 @@ function modalActions(canDelete) {
 }
 
 // Generic list-item editor: meds, vaccinations, visits, feeding.
-function listItemModal({ title, item, fieldsHtml, readForm, listName, list }) {
-  openModal(`<h2>${title}</h2>${fieldsHtml}${modalActions(!!item)}`);
+// With `shareable`, the modal offers to copy the entry to the other dogs.
+function listItemModal({ title, item, fieldsHtml, readForm, listName, list, shareable }) {
+  const shareRow = shareable && state.dogs.length > 1
+    ? `<label class="copy-row"><input type="checkbox" id="copy-all"> Also save a copy for the other dogs</label>`
+    : "";
+  openModal(`<h2>${title}</h2>${fieldsHtml}${shareRow}${modalActions(!!item)}`);
   const modal = modalRoot.querySelector(".modal");
   modal.querySelector('[data-m="cancel"]').onclick = closeModal;
   modal.querySelector('[data-m="save"]').onclick = async () => {
     const values = readForm(modal);
     if (values === null) return; // validation failed
+    const copyAll = modal.querySelector("#copy-all")?.checked;
     let next;
     if (item) {
       next = list.map((x) => (x.id === item.id ? { ...x, ...values } : x));
@@ -877,6 +997,12 @@ function listItemModal({ title, item, fieldsHtml, readForm, listName, list }) {
     }
     closeModal();
     await saveList(listName, next);
+    if (copyAll) {
+      const meId = currentDogId();
+      await Promise.all(state.dogs
+        .filter((d) => d.id !== meId)
+        .map((d) => saveFieldFor(d.id, listName, [...(d[listName] || []), { id: uid(), ...values }])));
+    }
   };
   const del = modal.querySelector('[data-m="delete"]');
   if (del) del.onclick = async () => {
@@ -901,7 +1027,12 @@ function medModal(dog, med) {
       field("Next due", `<input type="date" id="m-due" value="${esc(med?.nextDue)}">`) +
       field("Repeats every … days (optional)",
         `<input type="number" min="1" max="365" inputmode="numeric" id="m-repeat" value="${esc(med?.repeatDays)}" placeholder="e.g. 30 for monthly">
-         <div class="field-hint">With this set, tapping ✓ Done automatically schedules the next dose.</div>`),
+         <div class="field-hint">With this set, tapping ✓ Done automatically schedules the next dose.</div>`) +
+      field("Reminder time (optional)",
+        `<input type="time" id="m-time" value="${esc(med?.time)}">
+         <div class="field-hint">The app chimes at this time while open when a dose is due, and
+         "Add to calendar" becomes a repeating phone alarm at this exact time.</div>`),
+    shareable: true,
     readForm: (m) => {
       const name = $("#m-name", m).value.trim();
       if (!name) { alert("Give the medication a name."); return null; }
@@ -912,6 +1043,7 @@ function medModal(dog, med) {
         schedule: $("#m-sched", m).value.trim(),
         nextDue: $("#m-due", m).value,
         repeatDays: rep === "" ? "" : Number(rep),
+        time: $("#m-time", m).value,
       };
     },
   });
@@ -959,6 +1091,7 @@ function feedModal(dog, feed) {
     item: feed,
     list: dog.feeding || [],
     listName: "feeding",
+    shareable: true,
     fieldsHtml:
       field("Time", `<input type="time" id="f-time" value="${esc(feed?.time)}">`) +
       field("Amount / food", `<input id="f-amount" value="${esc(feed?.amount)}" placeholder="e.g. 1 cup kibble + salmon oil">`),
@@ -1061,8 +1194,24 @@ appEl.addEventListener("click", (e) => {
       const input = $("#allergy-input");
       const val = input.value.trim();
       if (!val || !dog) break;
+      const all = $("#allergy-all")?.checked;
       input.value = "";
-      saveList("allergies", [...(dog.allergies || []), val]);
+      if (all) {
+        for (const d of state.dogs) {
+          if (!(d.allergies || []).includes(val))
+            saveFieldFor(d.id, "allergies", [...(d.allergies || []), val]);
+        }
+      } else {
+        saveList("allergies", [...(dog.allergies || []), val]);
+      }
+      break;
+    }
+
+    case "copy-contacts": {
+      if (!dog) break;
+      const others = state.dogs.filter((d) => d.id !== dog.id);
+      if (!confirm(`Copy ${dog.name}'s vet & groomer contacts to ${others.map((d) => d.name).join(", ")}?`)) break;
+      for (const d of others) saveFieldFor(d.id, "contacts", { ...(dog.contacts || {}) });
       break;
     }
     case "del-allergy": {
@@ -1076,6 +1225,8 @@ appEl.addEventListener("click", (e) => {
 
     case "ics": downloadIcs({
       title: btn.dataset.title, date: btn.dataset.date,
+      time: btn.dataset.time, repeatDays: btn.dataset.repeat,
+      daily: btn.dataset.daily === "1",
       dog: btn.dataset.dog, desc: btn.dataset.desc,
     }); break;
 
