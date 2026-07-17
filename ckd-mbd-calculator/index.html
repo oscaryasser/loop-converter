@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CKD-MBD Management Planner (KDIGO)</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --line:#334155;
+    --ink:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#22d3ee;
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171; --chip:#0b3b52;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0b1220,#0f172a 40%,#0f172a);
+    color:var(--ink); line-height:1.5; padding:0 14px 60px;
+  }
+  header{max-width:1100px;margin:0 auto;padding:26px 4px 8px;}
+  h1{font-size:1.55rem;margin:0 0 4px;letter-spacing:.2px;}
+  .sub{color:var(--muted);font-size:.92rem;margin:0;}
+  .disclaimer{
+    max-width:1100px;margin:14px auto;background:#3f1d1d;border:1px solid #7f1d1d;
+    color:#fecaca;padding:10px 14px;border-radius:10px;font-size:.82rem;
+  }
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:18px;}
+  @media(min-width:920px){ .wrap{grid-template-columns:minmax(0,420px) minmax(0,1fr);align-items:start;} }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 18px;}
+  .card h2{font-size:1.02rem;margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+  label{display:block;font-size:.82rem;color:var(--muted);margin:12px 0 4px;font-weight:600;}
+  select,input[type="number"]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    padding:9px 10px;border-radius:9px;font-size:.95rem;
+  }
+  select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .labgroup{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .labhead{display:flex;justify-content:space-between;align-items:baseline;}
+  .labhead .name{font-size:.86rem;color:var(--ink);font-weight:600;}
+  .labhead .norm{font-size:.72rem;color:var(--muted);}
+  .pair{display:grid;grid-template-columns:1fr 84px;gap:10px;align-items:center;margin-top:6px;}
+  input[type="range"]{width:100%;accent-color:var(--accent);}
+  .checks{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px;}
+  @media(min-width:520px){ .checks{grid-template-columns:1fr 1fr;} }
+  .check{display:flex;gap:8px;align-items:flex-start;background:var(--panel2);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:.82rem;cursor:pointer;}
+  .check input{margin-top:2px;}
+  .btn{margin-top:16px;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#04222f;font-weight:800;border:none;padding:12px;border-radius:11px;font-size:1rem;cursor:pointer;}
+  .btn:active{transform:translateY(1px);}
+
+  /* Results */
+  #results{min-height:120px;}
+  .placeholder{color:var(--muted);font-size:.9rem;padding:8px 0;}
+  .targets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  @media(min-width:560px){ .targets{grid-template-columns:1fr 1fr 1fr;} }
+  .tgt{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+  .tgt .k{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .tgt .v{font-size:.9rem;font-weight:700;margin-top:2px;}
+  .tgt .status{font-size:.72rem;margin-top:3px;font-weight:700;}
+  .s-ok{color:var(--ok);} .s-warn{color:var(--warn);} .s-danger{color:var(--danger);} .s-muted{color:var(--muted);}
+
+  .flags{margin:6px 0 14px;display:flex;flex-direction:column;gap:8px;}
+  .flag{border-radius:10px;padding:9px 12px;font-size:.85rem;border:1px solid;}
+  .flag.danger{background:#3f1d1d;border-color:#7f1d1d;color:#fecaca;}
+  .flag.warn{background:#3b310f;border-color:#a16207;color:#fde68a;}
+  .flag.info{background:#0b2f3f;border-color:#155e75;color:#bae6fd;}
+  .flag.ok{background:#0c3325;border-color:#166534;color:#bbf7d0;}
+  .flag b{font-weight:800;}
+
+  .verify{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:.82rem;}
+  .verify h3{margin:0 0 6px;font-size:.82rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;}
+  .verify li{margin:3px 0;color:var(--ink);}
+  .verify li .lab{color:var(--muted);}
+
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:4px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+  td .drug{font-weight:800;color:#fff;}
+  td .rec{font-weight:700;}
+  .pill{display:inline-block;font-size:.68rem;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;}
+  .pill.start{background:#0c3325;color:#bbf7d0;border:1px solid #166534;}
+  .pill.hold{background:#3b310f;color:#fde68a;border:1px solid #a16207;}
+  .pill.none{background:#273449;color:#94a3b8;border:1px solid #334155;}
+  .pill.continue{background:#0b2f3f;color:#bae6fd;border:1px solid #155e75;}
+
+  .mon{margin-top:16px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;}
+  .mon h3{margin:0 0 8px;font-size:.82rem;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;}
+  .mon table td{font-size:.82rem;}
+  footer{max-width:1100px;margin:22px auto 0;color:var(--muted);font-size:.75rem;text-align:center;}
+  code.inline{background:#0b1220;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.78rem;}
+</style>
+</head>
+<body>
+<header>
+  <h1>CKD-MBD Management Planner</h1>
+  <p class="sub">KDIGO-aligned decision support for phosphate binders, active vitamin&nbsp;D, and calcimimetics. Runs entirely in your browser — no data leaves this page.</p>
+</header>
+
+<div class="disclaimer">
+  <b>Clinical decision support only — not a prescription.</b> Output is educational and must be verified against the full KDIGO CKD-MBD guideline, current drug labels, and the individual patient by a qualified clinician. Assay upper-normal limits and dialysate settings vary by lab and unit. Does not address dialysis prescription, bone biopsy, or non–CKD-MBD care.
+</div>
+
+<div class="wrap">
+  <!-- ============ INPUT ============ -->
+  <section class="card" aria-label="Patient inputs">
+    <h2><span class="dot"></span>Patient &amp; Labs</h2>
+
+    <label for="modality">Modality</label>
+    <select id="modality">
+      <option value="nd">Non-dialysis CKD</option>
+      <option value="hd">Hemodialysis (HD)</option>
+      <option value="pd">Peritoneal Dialysis (PD)</option>
+    </select>
+
+    <div id="stageWrap">
+      <label for="stage">CKD Stage (non-dialysis)</label>
+      <select id="stage">
+        <option value="3a">G3a (eGFR 45–59)</option>
+        <option value="3b">G3b (eGFR 30–44)</option>
+        <option value="4" selected>G4 (eGFR 15–29)</option>
+        <option value="5">G5 (eGFR &lt;15, not on dialysis)</option>
+      </select>
+    </div>
+
+    <div class="row2">
+      <div><label for="age">Age (yr)</label><input id="age" type="number" min="0" max="120" value="62"></div>
+      <div><label for="weight">Weight (kg)</label><input id="weight" type="number" min="0" max="300" value="75"></div>
+    </div>
+
+    <!-- Phosphorus -->
+    <div class="labgroup">
+      <div class="labhead"><span class="name">Serum Phosphorus</span><span class="norm">normal 2.5–4.5 mg/dL</span></div>
+      <div class="pair">
+        <input id="phos_r" type="range" min="1" max="12" step="0.1" value="6.2">
+        <input id="phos" type="number" min="1" max="12" step="0.1" value="6.2">
+      </div>
+    </div>
+
+    <!-- Calcium -->
+    <div class="labgroup">
+      <div class="labhead"><span class="name">Serum Calcium (corrected)</span><span class="norm">normal 8.5–10.2 mg/dL</span></div>
+      <div class="pair">
+        <input id="ca_r" type="range" min="5" max="14" step="0.1" value="9.4">
+        <input id="ca" type="number" min="5" max="14" step="0.1" value="9.4">
+      </div>
+    </div>
+
+    <!-- iPTH -->
+    <div class="labgroup">
+      <div class="labhead"><span class="name">iPTH</span><span class="norm">assay ULN ≈ 65 pg/mL</span></div>
+      <div class="pair">
+        <input id="pth_r" type="range" min="0" max="2000" step="5" value="720">
+        <input id="pth" type="number" min="0" max="3000" step="1" value="720">
+      </div>
+    </div>
+
+    <!-- 25-OH D -->
+    <div class="labgroup">
+      <div class="labhead"><span class="name">25-OH Vitamin D</span><span class="norm">sufficient ≥30 ng/mL</span></div>
+      <div class="pair">
+        <input id="vitd_r" type="range" min="0" max="80" step="1" value="22">
+        <input id="vitd" type="number" min="0" max="150" step="1" value="22">
+      </div>
+    </div>
+
+    <!-- Alk phos -->
+    <div class="labgroup">
+      <div class="labhead"><span class="name">Alkaline Phosphatase</span><span class="norm">normal ≈ 40–120 U/L</span></div>
+      <div class="pair" style="grid-template-columns:1fr;">
+        <input id="alp" type="number" min="10" max="1500" step="1" value="140">
+      </div>
+    </div>
+
+    <label for="binder">Current phosphate binder</label>
+    <select id="binder">
+      <option value="none">None</option>
+      <option value="calcium">Calcium-based</option>
+      <option value="sevelamer">Sevelamer</option>
+      <option value="lanthanum">Lanthanum</option>
+      <option value="ferric">Ferric citrate</option>
+      <option value="sucroferric">Sucroferric oxyhydroxide</option>
+    </select>
+
+    <div class="row2">
+      <div>
+        <label for="vitd_analog">Current active vitamin D</label>
+        <select id="vitd_analog">
+          <option value="none">None</option>
+          <option value="calcitriol">Calcitriol</option>
+          <option value="paricalcitol">Paricalcitol</option>
+          <option value="doxercalciferol">Doxercalciferol</option>
+        </select>
+      </div>
+      <div>
+        <label for="vitd_dose">Dose (free text)</label>
+        <input id="vitd_dose" type="text" placeholder="e.g. 1 mcg 3×/wk"
+               style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:9px 10px;border-radius:9px;font-size:.95rem;">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label for="calcimimetic">Current calcimimetic</label>
+        <select id="calcimimetic">
+          <option value="none">None</option>
+          <option value="cinacalcet">Cinacalcet</option>
+          <option value="etelcalcetide">Etelcalcetide</option>
+        </select>
+      </div>
+      <div>
+        <label for="cm_dose">Dose (free text)</label>
+        <input id="cm_dose" type="text" placeholder="e.g. 30 mg daily"
+               style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);padding:9px 10px;border-radius:9px;font-size:.95rem;">
+      </div>
+    </div>
+
+    <label>Relevant history</label>
+    <div class="checks">
+      <label class="check"><input type="checkbox" value="vasc"><span>Vascular / valvular calcification</span></label>
+      <label class="check"><input type="checkbox" value="adynamic"><span>Adynamic bone disease</span></label>
+      <label class="check"><input type="checkbox" value="ptx"><span>Prior parathyroidectomy</span></label>
+      <label class="check"><input type="checkbox" value="gi"><span>GI intolerance</span></label>
+      <label class="check"><input type="checkbox" value="pill"><span>Pill-burden concern</span></label>
+    </div>
+
+    <button class="btn" id="go">Generate management plan</button>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section class="card" aria-label="Management plan">
+    <h2><span class="dot"></span>Management Plan</h2>
+    <div id="results"><div class="placeholder">Enter labs and press <b>Generate management plan</b>. The plan updates live as you adjust inputs.</div></div>
+  </section>
+</div>
+
+<footer>
+  KDIGO 2017 Clinical Practice Guideline Update for CKD-MBD + 2018/2024 guidance. Targets and doses are typical adult values; individualize. Built as a static, client-side tool.
+</footer>
+
+<script>
+/* =========================================================================
+   CKD-MBD decision logic (pure functions) — KDIGO 2017 update aligned.
+   All thresholds centralised so the "target range being used" is explicit.
+   ========================================================================= */
+const T = {
+  caNorm:[8.5,10.2],           // corrected calcium, mg/dL
+  hyperCa:10.2,                // > this = hypercalcemia
+  lowCa:8.5,                   // < this = hypocalcemia
+  calcimimeticMinCa:8.4,       // cinacalcet: do NOT initiate if corrected Ca < 8.4
+  etelMinCa:8.3,               // etelcalcetide label threshold
+  phosNorm:[2.5,4.5],          // mg/dL
+  phosTreat:4.5,               // treat toward normal when above
+  phosHigh:5.5,                // clearly elevated
+  pthULN:65,                   // assumed assay upper-normal, pg/mL (varies by lab)
+  vitD:{def:20,insuf:30},      // 25-OH D ng/mL: <20 deficient, 20–30 insufficient, ≥30 sufficient
+  alp:{low:40,high:120}        // U/L
+};
+
+function pthDialysisTarget(){ return [2*T.pthULN, 9*T.pthULN]; } // ≈130–585 pg/mL
+
+function fmtRange(r,unit){ return r[0]+"–"+r[1]+(unit?(" "+unit):""); }
+
+/* ---- main planner -------------------------------------------------------- */
+function generatePlan(x){
+  const isDialysis = (x.modality==="hd"||x.modality==="pd");
+  const flags=[]; const verify=[];
+  const pthTgt = isDialysis ? pthDialysisTarget() : null;
+
+  // ---------- status classification ----------
+  const caHigh   = x.ca > T.hyperCa;
+  const caHighNml= x.ca > 10.0 && x.ca <= T.hyperCa;   // upper-normal, watch calcium load
+  const caLow    = x.ca < T.lowCa;
+  const caBelowMimetic = x.ca < T.calcimimeticMinCa;
+
+  const phosHigh = x.phos > T.phosTreat;
+  const phosVeryHigh = x.phos > T.phosHigh;
+  const phosLow  = x.phos < T.phosNorm[0];
+
+  const vitdDeficient  = x.vitd < T.vitD.def;
+  const vitdInsuf      = x.vitd >= T.vitD.def && x.vitd < T.vitD.insuf;
+
+  const alpLow = x.alp < T.alp.low;
+  const alpHigh= x.alp > T.alp.high;
+
+  // PTH interpretation
+  let pthState; // 'low' | 'target' | 'high' | 'veryHigh'
+  if(isDialysis){
+    if(x.pth < pthTgt[0]) pthState="low";
+    else if(x.pth <= pthTgt[1]) pthState="target";
+    else if(x.pth <= pthTgt[1]*1.5) pthState="high";
+    else pthState="veryHigh";
+  }else{
+    // non-dialysis: no firm target; judge vs ULN
+    if(x.pth <= T.pthULN) pthState="low";
+    else if(x.pth <= 2*T.pthULN) pthState="target";     // mildly above ULN
+    else if(x.pth <= 4*T.pthULN) pthState="high";
+    else pthState="veryHigh";
+  }
+
+  // Low-turnover / over-suppression signal (adynamic risk)
+  const lowTurnoverSignal = x.hist.adynamic || pthState==="low" || (isDialysis && alpLow && x.pth < pthTgt[0]);
+
+  // ================= FLAGS =================
+  if(caHigh) flags.push({t:"danger",h:"Hypercalcemia (corrected Ca "+x.ca+" mg/dL > "+T.hyperCa+")",
+    b:"Avoid calcium-based binders and active vitamin D — both raise calcium. Prefer a non-calcium binder; if PTH is high, a calcimimetic lowers calcium while lowering PTH."});
+  else if(caHighNml) flags.push({t:"warn",h:"High-normal calcium ("+x.ca+" mg/dL)",
+    b:"Limited room for added calcium load. Favor non-calcium binders and calcium-sparing vitamin D analogs; recheck before escalating active vitamin D."});
+  if(caLow) flags.push({t:"warn",h:"Hypocalcemia (corrected Ca "+x.ca+" mg/dL < "+T.lowCa+")",
+    b:"Correct calcium before/while lowering PTH. A calcimimetic must not be started below "+T.calcimimeticMinCa+" mg/dL (see calcimimetic row)."});
+  if(phosVeryHigh) flags.push({t:"danger",h:"Marked hyperphosphatemia ("+x.phos+" mg/dL)",
+    b:"Reinforce dietary phosphate restriction and binder with every meal; in dialysis also review adequacy/adherence."});
+  if(vitdDeficient) flags.push({t:"info",h:"25-OH vitamin D deficient ("+x.vitd+" ng/mL)",
+    b:"Repletion of nutritional 25-OH D (cholecalciferol/ergocalciferol) is a modifiable driver of high PTH and should be corrected first."});
+  if(lowTurnoverSignal) flags.push({t:"warn",h:"Low bone-turnover / adynamic risk",
+    b:"PTH is low or adynamic bone disease is flagged. Avoid over-suppressing PTH — do not push calcium load, active vitamin D, or calcimimetics; allow PTH to rise."});
+  if(x.hist.ptx && pthState!=="veryHigh") flags.push({t:"info",h:"Prior parathyroidectomy",
+    b:"Watch for hungry-bone hypocalcemia and over-suppression; PTH targets are interpreted cautiously."});
+
+  // ================= 1) PHOSPHATE BINDER =================
+  const binder = recBinder(x, {caHigh,caHighNml,caLow,phosHigh,phosVeryHigh,phosLow,isDialysis});
+
+  // ================= 2) ACTIVE VITAMIN D =================
+  const vitd = recVitD(x, {isDialysis,pthState,caHigh,caHighNml,phosVeryHigh,vitdDeficient,vitdInsuf,lowTurnoverSignal});
+
+  // ================= 3) CALCIMIMETIC =================
+  const cm = recCalcimimetic(x, {isDialysis,pthState,caBelowMimetic,caHigh,lowTurnoverSignal,pthTgt});
+
+  // ================= VERIFICATION (required self-checks) =================
+  verify.push({lab:"Modality match",
+    v: modalityCheck(x,{isDialysis,binder,vitd,cm})});
+  verify.push({lab:"Calcium load appropriate",
+    v: caLoadCheck(x,{caHigh,caHighNml,caLow,binder,vitd})});
+  verify.push({lab:"PTH justifies therapy",
+    v: pthCheck(x,{isDialysis,pthState,pthTgt,vitd,cm})});
+
+  // Targets card data
+  const targets = buildTargets(x,{isDialysis,pthTgt,pthState,caHigh,caLow,phosHigh,phosLow,vitdDeficient,vitdInsuf});
+
+  return {isDialysis,pthTgt,pthState,flags,verify,targets,binder,vitd,cm};
+}
+
+/* ---------- Phosphate binder ---------- */
+function caReason(s){ return s.caHigh?"hypercalcemia":s.caHighNml?"high-normal calcium":"vascular calcification / adynamic bone disease"; }
+function recBinder(x,s){
+  if(!s.phosHigh){
+    // phosphate at/under target
+    if(x.binder!=="none"){
+      return {tag:"continue",drug:"Continue current binder / consider taper",
+        dose:"Titrate to keep phosphate 2.5–4.5 mg/dL; if consistently low-normal, reduce dose.",
+        why:"Phosphorus "+x.phos+" mg/dL is within the KDIGO target range — no intensification needed."};
+    }
+    return {tag:"none",drug:"No binder indicated",
+      dose:"—",
+      why:"Phosphorus "+x.phos+" mg/dL is within target (2.5–4.5); reserve binders for persistent/progressive hyperphosphatemia."};
+  }
+
+  // phosphate elevated -> pick agent
+  const avoidCa = (x.hist.vasc || x.hist.adynamic || s.caHigh || s.caHighNml);
+  let drug, dose, why, tag="start";
+
+  if(x.hist.pill){
+    // pill-burden concern: lowest tablet-count, calcium-sparing agent (applies regardless of calcium)
+    drug="Sucroferric oxyhydroxide";
+    dose="500 mg chewable with each meal — 1 tab/meal; titrate by 500 mg/day q2–4 wk to phosphate target.";
+    why="Pill-burden concern → lowest tablet-count binder; also calcium-sparing"
+        + (s.caHigh?" (appropriate with hypercalcemia)":s.caHighNml?" (appropriate with high-normal calcium)":"")
+        + ". Ferric citrate is an alternative if iron repletion is also wanted.";
+  } else if(avoidCa){
+    if(x.hist.gi){
+      drug="Lanthanum carbonate";
+      dose="500 mg chewed with each meal; titrate by 500 mg/day q2–4 wk (usual 1500–3000 mg/day).";
+      why="Non-calcium, chewable, low-tablet binder given GI intolerance and the need to avoid calcium load ("+caReason(s)+").";
+    } else {
+      drug="Sevelamer carbonate";
+      dose="800 mg with each meal (start 800–1600 mg/meal); titrate q2 wk to phosphate target.";
+      why="Non-calcium binder preferred to avoid calcium load ("+caReason(s)+"); also lowers LDL. Lanthanum, ferric citrate, or sucroferric oxyhydroxide are alternatives.";
+    }
+  } else if(s.caLow){
+    drug="Calcium acetate (calcium-based)";
+    dose="667 mg, 2 tabs with each meal; keep elemental Ca from binders ≲1500 mg/day. Doubles as calcium repletion.";
+    why="Calcium is low ("+x.ca+" mg/dL) with no calcification/adynamic flag — a calcium-based binder both binds phosphate and helps correct calcium (KDIGO: restrict the dose).";
+  } else if(x.hist.gi){
+    drug="Lanthanum carbonate (or restricted-dose calcium acetate)";
+    dose="Lanthanum 500 mg chewed/meal; or calcium acetate 667 mg 1–2 tabs/meal if calcium repletion is desired (limit elemental Ca ≲1500 mg/day).";
+    why="Calcium is mid-normal so a restricted calcium binder is acceptable, but GI intolerance favors a chewable non-calcium agent.";
+  } else {
+    drug="Calcium acetate OR a non-calcium binder";
+    dose="Calcium acetate 667 mg 1–2 tabs/meal (limit elemental Ca ≲1500 mg/day) — or sevelamer 800 mg/meal to minimize calcium.";
+    why="Calcium is mid-normal ("+x.ca+" mg/dL) with no calcification/adynamic flag, so a restricted-dose calcium binder is acceptable; KDIGO still favors limiting calcium exposure.";
+  }
+  return {tag,drug,dose,why};
+}
+
+/* ---------- Active vitamin D ---------- */
+function recVitD(x,s){
+  // Hard stops that make active vitamin D inappropriate regardless of PTH
+  if(s.caHigh) return {tag:"hold",drug:"None indicated — hold active vitamin D",
+    dose:"—",
+    why:"Hypercalcemia contraindicates active vitamin D (raises calcium further). Reassess once calcium normalizes."};
+  if(s.lowTurnoverSignal) return {tag:"none",drug:"None indicated",
+    dose:"—",
+    why:"Low bone turnover / adynamic risk — active vitamin D would over-suppress PTH. Avoid."};
+
+  if(!s.isDialysis){
+    // Non-dialysis CKD: active vitamin D NOT routine; reserve for G4–G5 + severe/progressive SHPT
+    const advancedStage = (x.stage==="4"||x.stage==="5");
+    if(s.vitdDeficient || s.vitdInsuf){
+      return {tag:"none",drug:"Nutritional 25-OH D repletion first (not an active analog)",
+        dose:"Cholecalciferol per general-population deficiency dosing; recheck PTH after repletion.",
+        why:"KDIGO: in non-dialysis CKD, correct 25-OH D deficiency and other modifiable factors before considering active vitamin D."};
+    }
+    if(advancedStage && (s.pthState==="veryHigh") && !s.caHighNml){
+      if(s.phosVeryHigh) return {tag:"hold",drug:"Defer active vitamin D",
+        dose:"—",
+        why:"Marked hyperphosphatemia ("+x.phos+" mg/dL) — control phosphate first; active vitamin D can raise phosphate. Reassess PTH once phosphate improves."};
+      return {tag:"start",drug:"Calcitriol (or paricalcitol)",
+        dose:"Calcitriol 0.25 mcg PO daily (or 0.25–0.5 mcg 2–3×/wk); paricalcitol 1 mcg PO daily if minimizing calcium. Titrate to PTH; monitor Ca/PO4.",
+        why:"G4–G5 with severe, progressive hyperparathyroidism (PTH "+x.pth+") after addressing phosphate/calcium/25-OH D — the KDIGO niche where active vitamin D is warranted."};
+    }
+    return {tag:"none",drug:"None indicated",
+      dose:"—",
+      why:"Non-dialysis CKD: active vitamin D is not routine. PTH is not in the severe/progressive range that justifies it — address modifiable factors and monitor."};
+  }
+
+  // Dialysis (HD/PD): active vitamin D used for PTH lowering when above range
+  if(s.pthState==="high"||s.pthState==="veryHigh"){
+    if(s.phosVeryHigh) return {tag:"hold",drug:"Defer active vitamin D",
+      dose:"—",
+      why:"PTH is high but phosphate is markedly elevated ("+x.phos+" mg/dL) — control phosphate first (active vitamin D raises phosphate); a calcimimetic, which lowers phosphate, is the preferred PTH-lowering lever here."};
+    // pick calcium-sparing analog if calcium is high-normal
+    if(s.caHighNml){
+      return {tag:"start",drug:"Paricalcitol (calcium-sparing) or doxercalciferol",
+        dose: x.modality==="hd"
+          ? "Paricalcitol IV "+ Math.max(2.5, Math.round(x.pth/80)).toFixed(0) +" mcg (≈ iPTH/80) 3×/wk post-HD; or doxercalciferol 4 mcg IV 3×/wk. Titrate; hold if Ca >"+T.hyperCa+"."
+          : "Paricalcitol 1–2 mcg PO daily (or doxercalciferol); titrate to PTH; hold if Ca >"+T.hyperCa+".",
+        why:"PTH above the KDIGO dialysis target with high-normal calcium — a selective analog lowers PTH with less hypercalcemia than calcitriol."};
+    }
+    return {tag:"start",drug:"Calcitriol or vitamin D analog",
+      dose: x.modality==="hd"
+        ? "Calcitriol 0.5–1 mcg IV 3×/wk post-HD, or paricalcitol IV ≈ iPTH/80 mcg 3×/wk; titrate to PTH, monitor Ca/PO4."
+        : "Calcitriol 0.25 mcg PO daily or 0.5–1 mcg 2–3×/wk (PD); or oral paricalcitol; titrate to PTH.",
+      why:"PTH ("+x.pth+") is above the KDIGO dialysis target of "+fmtRange(pthDialysisTarget(),"pg/mL")+" with calcium/phosphate that permit an active vitamin D."};
+  }
+  if(s.pthState==="target"){
+    if(x.vitd_analog!=="none") return {tag:"continue",drug:"Continue current active vitamin D",
+      dose:"Maintain current dose; titrate to keep PTH within "+fmtRange(pthDialysisTarget(),"pg/mL")+".",
+      why:"PTH is within the KDIGO dialysis target range — hold steady and monitor."};
+    return {tag:"none",drug:"None indicated",
+      dose:"—",
+      why:"PTH is within the KDIGO dialysis target range ("+fmtRange(pthDialysisTarget(),"pg/mL")+") — no active vitamin D needed."};
+  }
+  // pthState low
+  return {tag:"none",drug:"None — reduce/stop if on it",
+    dose: x.vitd_analog!=="none" ? "Taper or stop current active vitamin D." : "—",
+    why:"PTH is below the KDIGO dialysis target — active vitamin D risks adynamic bone; do not start (reduce if already on it)."};
+}
+
+/* ---------- Calcimimetic ---------- */
+function recCalcimimetic(x,s){
+  // Not for non-dialysis CKD
+  if(!s.isDialysis){
+    return {tag:"none",drug:"None indicated",
+      dose:"—",
+      why:"Calcimimetics are not indicated in non-dialysis CKD (no outcome benefit, hypocalcemia/adynamic risk, off-label)."};
+  }
+  // Low turnover / low PTH -> no
+  if(s.lowTurnoverSignal || s.pthState==="low" || s.pthState==="target"){
+    return {tag:"none",drug:"None indicated",
+      dose:"—",
+      why: s.pthState==="target"
+        ? "PTH is within the KDIGO dialysis target ("+fmtRange(s.pthTgt,"pg/mL")+") — no calcimimetic needed."
+        : "PTH is at/below target or bone turnover is low — a calcimimetic would over-suppress PTH and worsen hypocalcemia."};
+  }
+  // PTH high/veryHigh -> candidate, but gate on calcium
+  if(s.caBelowMimetic){
+    return {tag:"hold",drug:"Do NOT start — calcium too low",
+      dose:"Threshold: corrected Ca must be ≥ "+T.calcimimeticMinCa+" mg/dL (etelcalcetide ≥ "+T.etelMinCa+"). Current Ca "+x.ca+" mg/dL.",
+      why:"Calcimimetics lower serum calcium; starting below "+T.calcimimeticMinCa+" mg/dL risks severe hypocalcemia. Correct calcium first, then reconsider."};
+  }
+  // Safe to start / escalate
+  if(x.modality==="hd"){
+    return {tag:"start",drug:"Cinacalcet or Etelcalcetide (HD)",
+      dose:"Cinacalcet 30 mg PO daily, titrate q2–4 wk (30→60→90→120→180) to PTH; OR etelcalcetide 5 mg IV 3×/wk post-HD, titrate to max 15 mg. Monitor Ca (esp. first weeks).",
+      why:"PTH ("+x.pth+") is above the KDIGO dialysis target of "+fmtRange(s.pthTgt,"pg/mL")+" and corrected Ca ("+x.ca+") is ≥ "+T.calcimimeticMinCa+" — a calcimimetic lowers PTH"+(x.hist.vasc||x.ca>10?" while lowering calcium (favorable with calcification / higher calcium)":"")+"."};
+  }
+  // PD -> oral cinacalcet only (etelcalcetide is IV post-HD)
+  return {tag:"start",drug:"Cinacalcet (PD — oral)",
+    dose:"Cinacalcet 30 mg PO daily; titrate q2–4 wk (30→60→90→120→180 mg) to PTH target; monitor calcium closely.",
+    why:"PD patient with PTH ("+x.pth+") above the KDIGO target of "+fmtRange(s.pthTgt,"pg/mL") +" and Ca ≥ "+T.calcimimeticMinCa+". Etelcalcetide is IV post-HD only, so oral cinacalcet is the calcimimetic option in PD."};
+}
+
+/* ---------- verification helpers ---------- */
+function modalityCheck(x,s){
+  const label = x.modality==="nd" ? ("non-dialysis CKD "+x.stage.toUpperCase()) : (x.modality==="hd"?"hemodialysis":"peritoneal dialysis");
+  let notes=[];
+  if(x.modality==="nd") notes.push("no fixed PTH target (judged vs ULN); active vitamin D reserved for G4–G5 severe SHPT; calcimimetics not indicated");
+  if(x.modality==="hd") notes.push("PTH target "+fmtRange(pthDialysisTarget(),"pg/mL")+"; etelcalcetide (IV post-HD) available");
+  if(x.modality==="pd") notes.push("PTH target "+fmtRange(pthDialysisTarget(),"pg/mL")+"; calcimimetic option is oral cinacalcet (etelcalcetide is HD-only)");
+  return "Plan built for <b>"+label+"</b> — "+notes.join("; ")+".";
+}
+function caLoadCheck(x,s){
+  if(s.caHigh) return "Calcium <b>high</b> ("+x.ca+") → calcium-based binders and active vitamin D withheld; calcium-sparing choices used. ✔";
+  if(s.caHighNml) return "Calcium <b>high-normal</b> ("+x.ca+") → favoring non-calcium binder / calcium-sparing analog. ✔";
+  if(s.caLow) return "Calcium <b>low</b> ("+x.ca+") → calcimimetic gated off; calcium-based binder may aid repletion. ✔";
+  return "Calcium mid-normal ("+x.ca+") → restricted-dose calcium binder acceptable; calcium load still limited per KDIGO. ✔";
+}
+function pthCheck(x,s){
+  if(!s.isDialysis){
+    if(s.pthState==="veryHigh") return "PTH markedly above ULN ("+x.pth+" vs ULN "+T.pthULN+") — justifies active vitamin D only in G4–G5 after modifiable factors addressed; no calcimimetic. Confirm the rise is <b>progressive/persistent</b> on serial values.";
+    return "PTH "+x.pth+" (ULN "+T.pthULN+") — not in the severe/progressive range that warrants active vitamin D; treat modifiable factors and re-check trend.";
+  }
+  const within = (x.pth>=s.pthTgt[0]&&x.pth<=s.pthTgt[1]);
+  if(within) return "PTH "+x.pth+" is <b>within</b> the target "+fmtRange(s.pthTgt,"pg/mL")+" — no new PTH-lowering agent started.";
+  if(x.pth<s.pthTgt[0]) return "PTH "+x.pth+" is <b>below</b> target "+fmtRange(s.pthTgt,"pg/mL")+" — PTH-lowering therapy withheld/reduced to avoid adynamic bone.";
+  return "PTH "+x.pth+" is <b>above</b> target "+fmtRange(s.pthTgt,"pg/mL")+" — supports active vitamin D and/or a calcimimetic (calcium-gated). Confirm the trend is rising on serial values.";
+}
+
+/* ---------- targets card ---------- */
+function buildTargets(x,s){
+  const out=[];
+  // Phosphate
+  out.push({k:"Phosphate target",v:"2.5–4.5 mg/dL (toward normal)",
+    status: s.phosHigh?["high","s-danger"]:(s.phosLow?["low","s-warn"]:["in range","s-ok"]),
+    now:x.phos+" mg/dL"});
+  // Calcium
+  out.push({k:"Calcium target",v:"8.5–10.2 mg/dL (avoid hyperCa)",
+    status: s.caHigh?["high","s-danger"]:(s.caLow?["low","s-warn"]:["in range","s-ok"]),
+    now:x.ca+" mg/dL"});
+  // PTH
+  if(s.isDialysis){
+    out.push({k:"iPTH target",v:fmtRange(s.pthTgt,"pg/mL")+" (≈2–9× ULN)",
+      status: s.pthState==="target"?["in range","s-ok"]:(s.pthState==="low"?["low","s-warn"]:["high","s-danger"]),
+      now:x.pth+" pg/mL"});
+  } else {
+    out.push({k:"iPTH (non-dialysis)",v:"No fixed target; treat modifiable factors",
+      status: (s.pthState==="veryHigh")?["markedly high","s-danger"]:(s.pthState==="high"?["elevated","s-warn"]:["≈ ULN","s-muted"]),
+      now:x.pth+" pg/mL"});
+  }
+  // 25-OH D
+  out.push({k:"25-OH vitamin D",v:"≥30 ng/mL sufficient",
+    status: s.vitdDeficient?["deficient","s-danger"]:(s.vitdInsuf?["insufficient","s-warn"]:["sufficient","s-ok"]),
+    now:x.vitd+" ng/mL"});
+  return out;
+}
+
+/* ---------- monitoring plan ---------- */
+function monitoringRows(p,x){
+  const rows=[];
+  const dial=p.isDialysis;
+  rows.push(["Serum calcium & phosphate",
+    (p.cm.tag==="start"||p.vitd.tag==="start") ? "1–2 weeks after any start/titration, then monthly until stable"
+      : (dial?"Every 1–3 months":"Every 3–6 months (more often in G4–G5)")]);
+  rows.push(["iPTH",
+    dial? "Every 3–6 months (sooner after changing PTH-lowering therapy)"
+        : "Every 6–12 months (G3), every 3–6 months (G4–G5); watch the trend"]);
+  rows.push(["25-OH vitamin D",
+    p.targets.some(t=>t.k==="25-OH vitamin D"&&/defic|insuff/.test(t.status[0]))
+      ? "Recheck after repletion (e.g., 3 months), then annually" : "Annually / if PTH rising"]);
+  rows.push(["Alkaline phosphatase","With PTH, as an adjunct marker of bone turnover"]);
+  if(p.cm.tag==="start") rows.push(["Calcium (calcimimetic safety)","Check within 1 week of start/titration; hold/adjust if corrected Ca < "+T.calcimimeticMinCa+" mg/dL or symptomatic hypocalcemia"]);
+  if(p.vitd.tag==="start") rows.push(["Ca × phosphate after active vitamin D","Within 1–2 weeks; hold analog if hypercalcemia or rising phosphate"]);
+  return rows;
+}
+
+/* =========================================================================
+   Rendering
+   ========================================================================= */
+function tagPill(tag){
+  const map={start:["start","Start / adjust"],hold:["hold","Hold / caution"],none:["none","None indicated"],continue:["continue","Continue"]};
+  const m=map[tag]||map.none; return '<span class="pill '+m[0]+'">'+m[1]+'</span>';
+}
+function render(p,x){
+  let h="";
+  // Targets
+  h+='<div class="targets">';
+  p.targets.forEach(t=>{
+    h+='<div class="tgt"><div class="k">'+t.k+'</div><div class="v">'+t.v+'</div>'+
+       '<div class="status '+t.status[1]+'">'+t.status[0]+' · '+t.now+'</div></div>';
+  });
+  h+='</div>';
+
+  // Flags
+  if(p.flags.length){
+    h+='<div class="flags">';
+    p.flags.forEach(f=>{ h+='<div class="flag '+f.t+'"><b>'+f.h+'.</b> '+f.b+'</div>'; });
+    h+='</div>';
+  }
+
+  // Verification
+  h+='<div class="verify"><h3>Verification checks</h3><ul style="margin:0;padding-left:18px;">';
+  p.verify.forEach(v=>{ h+='<li><span class="lab">'+v.lab+':</span> '+v.v+'</li>'; });
+  h+='</ul></div>';
+
+  // Recommendation table
+  h+='<table><thead><tr><th>Drug class</th><th>Recommendation</th><th>Dose</th><th>Rationale</th></tr></thead><tbody>';
+  h+=row("Phosphate binder",p.binder);
+  h+=row("Active vitamin D",p.vitd);
+  h+=row("Calcimimetic",p.cm);
+  h+='</tbody></table>';
+
+  // Monitoring
+  h+='<div class="mon"><h3>Monitoring — what to recheck &amp; when</h3><table><tbody>';
+  monitoringRows(p,x).forEach(r=>{ h+='<tr><td style="width:38%"><b>'+r[0]+'</b></td><td>'+r[1]+'</td></tr>'; });
+  h+='</tbody></table></div>';
+
+  document.getElementById("results").innerHTML=h;
+}
+function row(cls,r){
+  return '<tr><td><span class="drug">'+cls+'</span></td>'+
+    '<td><span class="rec">'+r.drug+'</span>'+tagPill(r.tag)+'</td>'+
+    '<td>'+(r.dose||"—")+'</td>'+
+    '<td>'+r.why+'</td></tr>';
+}
+
+/* =========================================================================
+   Wiring
+   ========================================================================= */
+function readInputs(){
+  const modality=document.getElementById("modality").value;
+  return {
+    modality,
+    stage:document.getElementById("stage").value,
+    age:+document.getElementById("age").value||0,
+    weight:+document.getElementById("weight").value||0,
+    phos:+document.getElementById("phos").value||0,
+    ca:+document.getElementById("ca").value||0,
+    pth:+document.getElementById("pth").value||0,
+    vitd:+document.getElementById("vitd").value||0,
+    alp:+document.getElementById("alp").value||0,
+    binder:document.getElementById("binder").value,
+    vitd_analog:document.getElementById("vitd_analog").value,
+    calcimimetic:document.getElementById("calcimimetic").value,
+    hist:{
+      vasc:chk("vasc"),adynamic:chk("adynamic"),ptx:chk("ptx"),gi:chk("gi"),pill:chk("pill")
+    }
+  };
+}
+function chk(v){ return !!document.querySelector('.check input[value="'+v+'"]:checked'); }
+
+// paired slider <-> number sync
+function link(rangeId,numId){
+  const r=document.getElementById(rangeId), n=document.getElementById(numId);
+  r.addEventListener("input",()=>{ n.value=r.value; run(); });
+  n.addEventListener("input",()=>{ if(n.value!=="") r.value=n.value; run(); });
+}
+function toggleStage(){
+  document.getElementById("stageWrap").style.display =
+    document.getElementById("modality").value==="nd" ? "block":"none";
+}
+let ran=false;
+function run(){
+  if(!ran) return; // wait for first explicit generate
+  const x=readInputs(); render(generatePlan(x),x);
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  link("phos_r","phos"); link("ca_r","ca"); link("pth_r","pth"); link("vitd_r","vitd");
+  ["modality","stage","alp","binder","vitd_analog","calcimimetic"].forEach(id=>
+    document.getElementById(id).addEventListener("change",run));
+  document.querySelectorAll('.check input, #age, #weight, #vitd_dose, #cm_dose').forEach(el=>
+    el.addEventListener("input",run));
+  document.getElementById("modality").addEventListener("change",toggleStage);
+  document.getElementById("go").addEventListener("click",()=>{ ran=true; const x=readInputs(); render(generatePlan(x),x); });
+  toggleStage();
+});
+</script>
+</body>
+</html>
